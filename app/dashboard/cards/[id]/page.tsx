@@ -255,17 +255,30 @@ export default function CardDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           )}
 
-          {card.apply_url && (
-            <a
-              href={card.apply_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              Apply Now
-              <ExternalLink className="ml-2 h-4 w-4" />
-            </a>
-          )}
+          <div className="mt-4 flex flex-wrap gap-3">
+            {card.apply_url && (
+              <a
+                href={card.apply_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Apply Now
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </a>
+            )}
+            {card.official_url && (
+              <a
+                href={card.official_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                View Official Page
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </a>
+            )}
+          </div>
         </CardContent>
       </Card>
 

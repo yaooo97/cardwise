@@ -24,6 +24,7 @@ export interface Database {
           transfer_partners: string[] | null
           image_url: string | null
           apply_url: string | null
+          official_url: string | null
           card_color: string | null
           card_color_end: string | null
           description: string | null
@@ -44,6 +45,7 @@ export interface Database {
           transfer_partners?: string[] | null
           image_url?: string | null
           apply_url?: string | null
+          official_url?: string | null
           card_color?: string | null
           card_color_end?: string | null
           description?: string | null
@@ -64,6 +66,7 @@ export interface Database {
           transfer_partners?: string[] | null
           image_url?: string | null
           apply_url?: string | null
+          official_url?: string | null
           card_color?: string | null
           card_color_end?: string | null
           description?: string | null

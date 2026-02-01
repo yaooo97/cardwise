@@ -7,10 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { CreditCardVisual } from '@/components/cards/credit-card-visual'
 import { formatCurrency } from '@/lib/utils'
-import { Search, TrendingUp, ExternalLink, Loader2, CreditCard as CreditCardIcon, Check, Star } from 'lucide-react'
+import { Search, TrendingUp, ExternalLink, Loader2, Check, Star, Clock } from 'lucide-react'
+import Link from 'next/link'
 
-const ISSUERS = ['All', 'Chase', 'Amex', 'Citi', 'Capital One', 'Bank of America', 'US Bank']
+const ISSUERS = ['All', 'Chase', 'Amex', 'Citi', 'Capital One', 'Bank of America', 'US Bank', 'Wells Fargo', 'Discover', 'Barclays']
 
 export default function OpenCardPage() {
   const [cards, setCards] = useState<CreditCard[]>([])
@@ -163,86 +165,101 @@ export default function OpenCardPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {filteredCards.map((card, index) => (
-            <Card 
-              key={card.id}
-              className={card.is_at_highest ? 'ring-2 ring-green-500 dark:ring-green-400' : ''}
-            >
-              <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row md:items-center gap-4">
-                  {/* Rank */}
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold shrink-0">
-                    #{index + 1}
-                  </div>
+          {filteredCards.map((card, index) => {
+            const daysUntilEnd = card.sub_end_date 
+              ? Math.ceil((new Date(card.sub_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+              : null
 
-                  {/* Card image placeholder */}
-                  <div className="w-20 h-12 rounded bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center shrink-0">
-                    <CreditCardIcon className="h-6 w-6 text-white/70" />
-                  </div>
+            return (
+              <Link key={card.id} href={`/dashboard/cards/${card.id}`}>
+                <Card 
+                  className={`hover:shadow-lg transition-shadow cursor-pointer ${
+                    card.is_at_highest ? 'ring-2 ring-green-500 dark:ring-green-400' : ''
+                  }`}
+                >
+                  <CardContent className="p-6">
+                    <div className="flex flex-col md:flex-row md:items-center gap-4">
+                      {/* Rank */}
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold shrink-0">
+                        #{index + 1}
+                      </div>
 
-                  {/* Card info */}
-                  <div className="flex-1">
-                    <div className="flex items-start gap-2 flex-wrap">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">
-                        {card.name}
-                      </h3>
-                      {userCardIds.has(card.id) && (
-                        <Badge variant="secondary" className="gap-1">
-                          <Check className="h-3 w-3" />
-                          Owned
-                        </Badge>
-                      )}
-                      {card.is_at_highest && (
-                        <Badge variant="success">All-Time High</Badge>
+                      {/* Card visual */}
+                      <CreditCardVisual card={card} size="sm" className="shrink-0" />
+
+                      {/* Card info */}
+                      <div className="flex-1">
+                        <div className="flex items-start gap-2 flex-wrap">
+                          <h3 className="font-semibold text-gray-900 dark:text-white">
+                            {card.name}
+                          </h3>
+                          {userCardIds.has(card.id) && (
+                            <Badge variant="secondary" className="gap-1">
+                              <Check className="h-3 w-3" />
+                              Owned
+                            </Badge>
+                          )}
+                          {card.is_at_highest && (
+                            <Badge variant="success">All-Time High</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{card.issuer}</p>
+                        
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Badge variant="outline">
+                            {card.annual_fee === 0 ? 'No Annual Fee' : `${formatCurrency(card.annual_fee)} Annual Fee`}
+                          </Badge>
+                          {card.point_type && (
+                            <Badge variant="outline">{card.point_type}</Badge>
+                          )}
+                        </div>
+
+                        {card.sub_requirements && (
+                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="font-medium">Requirement:</span> {card.sub_requirements}
+                          </p>
+                        )}
+
+                        {daysUntilEnd !== null && daysUntilEnd > 0 && daysUntilEnd <= 30 && (
+                          <div className="mt-2 flex items-center gap-1 text-sm text-orange-600 dark:text-orange-400">
+                            <Clock className="h-4 w-4" />
+                            <span>Ends in {daysUntilEnd} days</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* SUB Value */}
+                      <div className="text-right shrink-0">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                          {formatCurrency(card.current_sub)}
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Sign-up Bonus</p>
+                        {card.highest_sub > card.current_sub && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            Highest: {formatCurrency(card.highest_sub)}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Apply button */}
+                      {card.apply_url && (
+                        <a 
+                          href={card.apply_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="shrink-0 inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Apply
+                          <ExternalLink className="ml-2 h-4 w-4" />
+                        </a>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{card.issuer}</p>
-                    
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <Badge variant="outline">
-                        {card.annual_fee === 0 ? 'No Annual Fee' : `${formatCurrency(card.annual_fee)} Annual Fee`}
-                      </Badge>
-                      {card.point_type && (
-                        <Badge variant="outline">{card.point_type}</Badge>
-                      )}
-                    </div>
-
-                    {card.sub_requirements && (
-                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Requirement:</span> {card.sub_requirements}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* SUB Value */}
-                  <div className="text-right shrink-0">
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      {formatCurrency(card.current_sub)}
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Sign-up Bonus</p>
-                    {card.highest_sub > card.current_sub && (
-                      <p className="text-xs text-gray-400 mt-1">
-                        Highest: {formatCurrency(card.highest_sub)}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Apply button */}
-                  {card.apply_url && (
-                    <a 
-                      href={card.apply_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="shrink-0 inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                    >
-                      Apply
-                      <ExternalLink className="ml-2 h-4 w-4" />
-                    </a>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  </CardContent>
+                </Card>
+              </Link>
+            )
+          })}
         </div>
       )}
     </div>
