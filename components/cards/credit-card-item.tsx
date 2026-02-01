@@ -4,31 +4,34 @@ import { CreditCard } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatCurrency } from '@/lib/utils'
-import { Check, CreditCard as CreditCardIcon } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CreditCardVisual } from './credit-card-visual'
+import Link from 'next/link'
 
 interface CreditCardItemProps {
   card: CreditCard
   isOwned?: boolean
-  onToggle?: (cardId: string) => void
+  onToggle?: (cardId: string, e: React.MouseEvent) => void
   showRewards?: boolean
+  clickable?: boolean
 }
 
-export function CreditCardItem({ card, isOwned = false, onToggle, showRewards = false }: CreditCardItemProps) {
-  return (
+export function CreditCardItem({ card, isOwned = false, onToggle, showRewards = false, clickable = true }: CreditCardItemProps) {
+  const content = (
     <Card 
       className={cn(
-        'cursor-pointer transition-all hover:shadow-md',
-        isOwned && 'ring-2 ring-primary bg-primary/5'
+        'transition-all hover:shadow-md',
+        isOwned && 'ring-2 ring-primary bg-primary/5',
+        clickable && 'cursor-pointer',
+        onToggle && 'cursor-pointer'
       )}
-      onClick={() => onToggle?.(card.id)}
+      onClick={(e) => onToggle?.(card.id, e)}
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
-          {/* Card image placeholder */}
-          <div className="w-16 h-10 rounded bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center shrink-0">
-            <CreditCardIcon className="h-5 w-5 text-white/70" />
-          </div>
+          {/* Card visual */}
+          <CreditCardVisual card={card} size="sm" className="shrink-0" />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
@@ -53,7 +56,7 @@ export function CreditCardItem({ card, isOwned = false, onToggle, showRewards = 
                 {card.annual_fee === 0 ? 'No AF' : `${formatCurrency(card.annual_fee)} AF`}
               </Badge>
               {card.is_at_highest && (
-                <Badge variant="success">All-Time High SUB</Badge>
+                <Badge variant="success">All-Time High</Badge>
               )}
               {card.point_type && (
                 <Badge variant="outline">{card.point_type}</Badge>
@@ -75,4 +78,14 @@ export function CreditCardItem({ card, isOwned = false, onToggle, showRewards = 
       </CardContent>
     </Card>
   )
+
+  if (clickable && !onToggle) {
+    return (
+      <Link href={`/dashboard/cards/${card.id}`}>
+        {content}
+      </Link>
+    )
+  }
+
+  return content
 }

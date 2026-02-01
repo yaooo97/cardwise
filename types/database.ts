@@ -19,10 +19,14 @@ export interface Database {
           highest_sub: number
           is_at_highest: boolean
           sub_requirements: string | null
+          sub_end_date: string | null
           point_type: string | null
           transfer_partners: string[] | null
           image_url: string | null
           apply_url: string | null
+          card_color: string | null
+          card_color_end: string | null
+          description: string | null
           created_at: string
           updated_at: string
         }
@@ -35,10 +39,14 @@ export interface Database {
           highest_sub: number
           is_at_highest?: boolean
           sub_requirements?: string | null
+          sub_end_date?: string | null
           point_type?: string | null
           transfer_partners?: string[] | null
           image_url?: string | null
           apply_url?: string | null
+          card_color?: string | null
+          card_color_end?: string | null
+          description?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -51,10 +59,14 @@ export interface Database {
           highest_sub?: number
           is_at_highest?: boolean
           sub_requirements?: string | null
+          sub_end_date?: string | null
           point_type?: string | null
           transfer_partners?: string[] | null
           image_url?: string | null
           apply_url?: string | null
+          card_color?: string | null
+          card_color_end?: string | null
+          description?: string | null
           created_at?: string
           updated_at?: string
         }

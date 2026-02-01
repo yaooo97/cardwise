@@ -8,10 +8,14 @@ CREATE TABLE credit_cards (
   highest_sub INTEGER NOT NULL DEFAULT 0, -- in cents
   is_at_highest BOOLEAN DEFAULT false,
   sub_requirements TEXT,
+  sub_end_date DATE, -- when the current SUB offer ends
   point_type TEXT,
   transfer_partners TEXT[],
   image_url TEXT,
   apply_url TEXT,
+  card_color TEXT DEFAULT '#1a1a2e', -- gradient start color for card display
+  card_color_end TEXT DEFAULT '#16213e', -- gradient end color
+  description TEXT, -- card description/benefits summary
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
