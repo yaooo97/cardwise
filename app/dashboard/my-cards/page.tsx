@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { CreditCard, UserCard } from '@/types/database'
-import { CreditCardItem } from '@/components/cards/credit-card-item'
+import { CreditCard } from '@/types/database'
 import { CreditCardVisual } from '@/components/cards/credit-card-visual'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Search, Loader2, Wallet, CreditCard as CreditCardIcon, Grid, List } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
+import { Search, Loader2, Wallet, CreditCard as CreditCardIcon, Check, X, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 
-const ISSUERS = ['All', 'Chase', 'Amex', 'Citi', 'Capital One', 'Bank of America', 'US Bank', 'Wells Fargo', 'Discover']
+const ISSUERS = ['All', 'Chase', 'Amex', 'Citi', 'Capital One', 'Bank of America', 'US Bank', 'Wells Fargo', 'Discover', 'Barclays']
 
 type ViewMode = 'my-cards' | 'all-cards'
 
@@ -60,39 +60,39 @@ export default function MyCardsPage() {
     }
   }
 
-  const toggleCard = async (cardId: string, e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    
+  const addCard = async (cardId: string) => {
     setSaving(true)
-    const isOwned = userCards.has(cardId)
-    
     try {
-      if (isOwned) {
-        // Remove card
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
         await supabase
           .from('user_cards')
-          .delete()
-          .eq('card_id', cardId)
+          .insert({ user_id: user.id, card_id: cardId } as never)
         
-        setUserCards(prev => {
-          const next = new Set(prev)
-          next.delete(cardId)
-          return next
-        })
-      } else {
-        // Add card
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          await supabase
-            .from('user_cards')
-            .insert({ user_id: user.id, card_id: cardId } as never)
-          
-          setUserCards(prev => new Set([...prev, cardId]))
-        }
+        setUserCards(prev => new Set([...prev, cardId]))
       }
     } catch (error) {
-      console.error('Error toggling card:', error)
+      console.error('Error adding card:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const removeCard = async (cardId: string) => {
+    setSaving(true)
+    try {
+      await supabase
+        .from('user_cards')
+        .delete()
+        .eq('card_id', cardId)
+      
+      setUserCards(prev => {
+        const next = new Set(prev)
+        next.delete(cardId)
+        return next
+      })
+    } catch (error) {
+      console.error('Error removing card:', error)
     } finally {
       setSaving(false)
     }
@@ -180,19 +180,29 @@ export default function MyCardsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>My Wallet</CardTitle>
-                  <CardDescription>Click any card to view details</CardDescription>
+                  <CardDescription>Click a card to view details, or hover to remove</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-4">
                     {myCards.map(card => (
-                      <Link key={card.id} href={`/dashboard/cards/${card.id}`} className="group">
-                        <div className="transition-transform group-hover:scale-105 group-hover:-translate-y-1">
-                          <CreditCardVisual card={card} size="md" />
-                        </div>
+                      <div key={card.id} className="relative group">
+                        <Link href={`/dashboard/cards/${card.id}`}>
+                          <div className="transition-transform group-hover:scale-105 group-hover:-translate-y-1">
+                            <CreditCardVisual card={card} size="md" />
+                          </div>
+                        </Link>
                         <p className="mt-2 text-sm font-medium text-gray-900 dark:text-white text-center truncate max-w-[192px]">
                           {card.name}
                         </p>
-                      </Link>
+                        {/* Remove button on hover */}
+                        <button
+                          onClick={() => removeCard(card.id)}
+                          className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg z-10"
+                          title="Remove from wallet"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </CardContent>
@@ -203,15 +213,52 @@ export default function MyCardsPage() {
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Card Details
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   {myCards.map(card => (
-                    <CreditCardItem
-                      key={card.id}
-                      card={card}
-                      isOwned={true}
-                      showRewards={true}
-                      clickable={true}
-                    />
+                    <Card key={card.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-4">
+                          <CreditCardVisual card={card} size="sm" className="shrink-0" />
+                          
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-gray-900 dark:text-white">
+                              {card.name}
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{card.issuer}</p>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              <Badge variant="secondary">
+                                {card.annual_fee === 0 ? 'No AF' : `${formatCurrency(card.annual_fee)} AF`}
+                              </Badge>
+                              {card.point_type && (
+                                <Badge variant="outline">{card.point_type}</Badge>
+                              )}
+                              {card.current_sub > 0 && (
+                                <Badge variant="success">
+                                  SUB: {formatCurrency(card.current_sub)}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 shrink-0">
+                            <Link href={`/dashboard/cards/${card.id}`}>
+                              <Button variant="outline" size="sm">
+                                Details
+                                <ExternalLink className="ml-1 h-3 w-3" />
+                              </Button>
+                            </Link>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => removeCard(card.id)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               </div>
@@ -226,8 +273,8 @@ export default function MyCardsPage() {
           {/* Filters */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Filter Cards</CardTitle>
-              <CardDescription>Click a card to add/remove from your wallet, or click the card name to view details</CardDescription>
+              <CardTitle className="text-lg">Browse & Add Cards</CardTitle>
+              <CardDescription>Click the + button to add a card to your wallet</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="relative">
@@ -287,24 +334,69 @@ export default function MyCardsPage() {
                   <span className="text-sm font-normal text-gray-500">({issuerCards.length})</span>
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {issuerCards.map(card => (
-                    <div key={card.id} className="relative">
-                      <CreditCardItem
-                        card={card}
-                        isOwned={userCards.has(card.id)}
-                        showRewards={true}
-                        clickable={false}
-                        onToggle={toggleCard}
-                      />
-                      <Link 
-                        href={`/dashboard/cards/${card.id}`}
-                        className="absolute top-2 right-2 text-xs text-primary hover:underline z-10"
-                        onClick={(e) => e.stopPropagation()}
+                  {issuerCards.map(card => {
+                    const isOwned = userCards.has(card.id)
+                    return (
+                      <Card 
+                        key={card.id}
+                        className={`hover:shadow-md transition-shadow ${isOwned ? 'ring-2 ring-primary bg-primary/5' : ''}`}
                       >
-                        View Details →
-                      </Link>
-                    </div>
-                  ))}
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-4">
+                            <CreditCardVisual card={card} size="sm" className="shrink-0" />
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                                  {card.name}
+                                </h3>
+                                {isOwned && (
+                                  <Check className="h-4 w-4 text-primary shrink-0" />
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">{card.issuer}</p>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                <Badge variant="secondary" className="text-xs">
+                                  {card.annual_fee === 0 ? 'No AF' : `${formatCurrency(card.annual_fee)}`}
+                                </Badge>
+                                {card.is_at_highest && (
+                                  <Badge variant="success" className="text-xs">ATH SUB</Badge>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2 shrink-0">
+                              {isOwned ? (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => removeCard(card.id)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <X className="h-4 w-4 mr-1" />
+                                  Remove
+                                </Button>
+                              ) : (
+                                <Button 
+                                  variant="default" 
+                                  size="sm"
+                                  onClick={() => addCard(card.id)}
+                                >
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Add
+                                </Button>
+                              )}
+                              <Link href={`/dashboard/cards/${card.id}`}>
+                                <Button variant="ghost" size="sm" className="w-full text-xs">
+                                  Details →
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
               </div>
             ))
